@@ -1,13 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="fill_parent"
-              android:layout_height="fill_parent"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
         >
     <TextView
+            android:id="@+id/gpsState"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Hello World, MyActivity"
+            android:layout_centerHorizontal="true"
+            android:padding="8dp"
             />
-</LinearLayout>
-
+    <Button
+            android:id="@+id/gpsOnButton"
+            android:layout_below="@+id/gpsState"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="GPS On"
+            android:layout_margin="5dp"
+            android:enabled="true"
+            />
+    <Button
+            android:id="@+id/gpsOffButton"
+            android:layout_below="@+id/gpsOnButton"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="GPS Off"
+            android:layout_margin="5dp"
+            android:enabled="true"
+            />
+    <Button
+            android:id="@+id/gpsCheck"
+            android:layout_below="@+id/gpsOffButton"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Check GPS"
+            android:layout_margin="5dp"
+            android:enabled="true"
+            />
+    <Button
+            android:id="@+id/gpsGetPosition"
+            android:layout_below="@+id/gpsCheck"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Get Position"
+            android:layout_margin="5dp"
+            android:enabled="false"
+            />
+    <Button
+            android:id="@+id/listproviders"
+            android:layout_below="@+id/gpsGetPosition"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="List Providers"
+            android:layout_margin="5dp"
+            android:enabled="true"
+            />
+</RelativeLayout>
