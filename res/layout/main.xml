@@ -12,35 +12,17 @@
             android:padding="8dp"
             />
     <Button
-            android:id="@+id/gpsOnButton"
+            android:id="@+id/locationToggleButton"
             android:layout_below="@+id/gpsState"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="GPS On"
-            android:layout_margin="5dp"
-            android:enabled="true"
-            />
-    <Button
-            android:id="@+id/gpsOffButton"
-            android:layout_below="@+id/gpsOnButton"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="GPS Off"
-            android:layout_margin="5dp"
-            android:enabled="true"
-            />
-    <Button
-            android:id="@+id/gpsCheck"
-            android:layout_below="@+id/gpsOffButton"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="Check GPS"
+            android:text="Enable or Disable Location"
             android:layout_margin="5dp"
             android:enabled="true"
             />
     <Button
             android:id="@+id/gpsGetPosition"
-            android:layout_below="@+id/gpsCheck"
+            android:layout_below="@+id/locationToggleButton"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Get Position"
@@ -52,8 +34,23 @@
             android:layout_below="@+id/gpsGetPosition"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="List Providers"
+            android:text="List Current Provider"
             android:layout_margin="5dp"
-            android:enabled="true"
+            android:enabled="false"
             />
+    <ScrollView
+            android:id="@+id/editTextScrollView"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/listproviders"
+            android:layout_margin="5dp">
+        <EditText
+                android:id="@+id/displayEditText"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:cursorVisible="false"
+                android:editable="false"
+                />
+    </ScrollView>
+
 </RelativeLayout>
