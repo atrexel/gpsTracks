@@ -105,7 +105,7 @@ public class MyActivity extends Activity {
                     if(gps.canGetLocation) {
                         Double latitude = gps.getLatitude();
                         Double longitude = gps.getLongitude();
-                        displayEditText.append("Current Position:\n  [" + latitude + ", " + longitude + "]\n\n");
+                        displayEditText.append("Current Location:\n    [" + latitude + ", " + longitude + "]\n\n");
                     }else{
                         Toast.makeText(getApplicationContext(), "Can't get location", Toast.LENGTH_SHORT).show();
                     }
@@ -205,7 +205,7 @@ public class MyActivity extends Activity {
     private class getGPSCoordinates extends Thread implements Runnable {
 
         TextView threadMileageTextView = (TextView) findViewById(R.id.mileageTextView);
-        int indexing = 0;
+        double indexing = 0.0;
 
         public void run() {
             //System.out.println("Hello from a thread!");
@@ -217,7 +217,7 @@ public class MyActivity extends Activity {
                 while(pollGPS){
                     double miles = updateMilage();
                     totalMiles = totalMiles + miles;
-                    indexing = indexing + 1;
+                    indexing = indexing + 0.5;
 
                     Log.v("UpdateMileage", "current miles: "+miles+" mi");
 
@@ -230,7 +230,7 @@ public class MyActivity extends Activity {
                     });
 
                     try{
-                        sleep(5000);
+                        sleep(3000);
                     }catch(Exception e){
                         //error trying to sleep...
                     }

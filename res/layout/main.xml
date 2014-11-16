@@ -25,7 +25,7 @@
             android:layout_below="@+id/locationToggleButton"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Get Position"
+            android:text="Get Current Location"
             android:layout_margin="5dp"
             android:enabled="false"
             />
