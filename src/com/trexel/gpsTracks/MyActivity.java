@@ -1,13 +1,8 @@
 package com.trexel.gpsTracks;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -18,7 +13,6 @@ import android.widget.Toast;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 public class MyActivity extends Activity {
 
@@ -32,7 +26,7 @@ public class MyActivity extends Activity {
     boolean pollGPS = false;
     boolean isCleared = true;
     Thread getCoordinates;
-    double totalMiles = 0;
+    double totalMiles = 0.0;
 
     GPSManager gps;
     Location location;
@@ -168,8 +162,8 @@ public class MyActivity extends Activity {
                     //loop through and print out current coordinates in coordinateList
                     displayEditText.append("Current Coordinates:\n");
                     for (Coordinate coord : coordinateList) {
-                        displayEditText.append(coordinateList.indexOf(coord)+" [" + coord.latitude + ", " +
-                                coord.longitude + "] "+coord.timestamp+"\n");
+                        displayEditText.append("[" + coord.latitude + ", " +
+                                coord.longitude + "] "+coordinateList.indexOf(coord)+"\n");
                     }
                     displayEditText.append("\n");
                 }else{
@@ -190,8 +184,10 @@ public class MyActivity extends Activity {
                     Toast.makeText(getApplicationContext(), "Cleared Mileage", Toast.LENGTH_SHORT).show();
                     isCleared = true;
                     coordinateList = new ArrayList<Coordinate>();
-                    //reset the mileage textview
+                    //reset the mileageTextView, displayEditText, and totalMiles
                     mileageTextView.setText("0.0 mi");
+                    displayEditText.setText("");
+                    totalMiles = 0.0;
                 }else{
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
@@ -208,6 +204,9 @@ public class MyActivity extends Activity {
 
     private class getGPSCoordinates extends Thread implements Runnable {
 
+        TextView threadMileageTextView = (TextView) findViewById(R.id.mileageTextView);
+        int indexing = 0;
+
         public void run() {
             //System.out.println("Hello from a thread!");
             //user has started a new tracking period
@@ -218,11 +217,22 @@ public class MyActivity extends Activity {
                 while(pollGPS){
                     double miles = updateMilage();
                     totalMiles = totalMiles + miles;
-                    //mileageTextView.setText(miles+" mi");
+                    indexing = indexing + 1;
+
+                    Log.v("UpdateMileage", "current miles: "+miles+" mi");
+
+                    // Must use the runOnUiThread method to update UI elements
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            threadMileageTextView.setText(indexing+" mi");
+                        }
+                    });
+
                     try{
                         sleep(5000);
                     }catch(Exception e){
-                        //error while sleeping...
+                        //error trying to sleep...
                     }
                 }
             }
@@ -270,7 +280,7 @@ public class MyActivity extends Activity {
         }
         Log.v("UpdateMileage", "distance: "+miles);
         return miles;
-    }
+    }//end updateMileage
 
 
     @Override
