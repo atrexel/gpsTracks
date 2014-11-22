@@ -27,6 +27,9 @@ import java.util.ArrayList;
 
 public class MyActivity extends Activity {
 
+    //class intent constants
+    final int REQUEST_ENABLE_LOCATION = 35;
+
     private class Coordinate{
         double latitude;
         double longitude;
@@ -297,7 +300,8 @@ public class MyActivity extends Activity {
                 switch (which){
                     case DialogInterface.BUTTON_POSITIVE:
                         //Yes button clicked
-                        MyActivity.this.startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        Intent enableLocation = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        MyActivity.this.startActivityForResult(enableLocation, REQUEST_ENABLE_LOCATION);
                         break;
 
                     case DialogInterface.BUTTON_NEGATIVE:
@@ -308,7 +312,8 @@ public class MyActivity extends Activity {
         };
 
         settingsAlert = new AlertDialog.Builder(this);
-        settingsAlert.setMessage("Would you like to change your current location Setting?").setPositiveButton("Yes", dialogClickListener)
+        settingsAlert.setMessage("Would you like to change your current location setting?")
+                .setPositiveButton("Yes", dialogClickListener)
                 .setNegativeButton("No", dialogClickListener);
 
     }//end onCreate()
@@ -537,36 +542,35 @@ public class MyActivity extends Activity {
     }
 
 
-
-    ////DEPERECIATED THIS EXPLOITED BUG CODE -- used to handle GPS programmatically
-    public void turnGPSOn()
-    {
-        Intent intent = new Intent("android.location.GPS_ENABLED_CHANGE");
-        intent.putExtra("enabled", true);
-        MyActivity.this.sendBroadcast(intent);
-
-        String provider = Settings.Secure.getString(MyActivity.this.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
-        if(!provider.contains("gps")){ //if gps is disabled
-            final Intent poke = new Intent();
-            poke.setClassName("com.android.settings", "com.android.settings.widget.SettingsAppWidgetProvider");
-            poke.addCategory(Intent.CATEGORY_ALTERNATIVE);
-            poke.setData(Uri.parse("3"));
-            MyActivity.this.sendBroadcast(poke);
-
-
-        }
-    }
-    // automatic turn off the gps
-    public void turnGPSOff()
-    {
-        String provider = Settings.Secure.getString(MyActivity.this.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
-        if(provider.contains("gps")){ //if gps is enabled
-            final Intent poke = new Intent();
-            poke.setClassName("com.android.settings", "com.android.settings.widget.SettingsAppWidgetProvider");
-            poke.addCategory(Intent.CATEGORY_ALTERNATIVE);
-            poke.setData(Uri.parse("3"));
-            MyActivity.this.sendBroadcast(poke);
-        }
+    //handles intent callbacks
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // TODO Auto-generated method stub
+        if(requestCode == REQUEST_ENABLE_LOCATION){
+            gps = new GPSManager(MyActivity.this);
+            if(gps.isGPSEnabled && gps.isNetworkEnabled){
+                gpsStatusTextView.setText("location service is enabled");
+                gps = new GPSManager(this);
+                getCoordinates = new getGPSCoordinates();
+                location = gps.getLocation();
+                getPosition.setEnabled(true);
+                startTracks.setEnabled(true);
+                stopTracks.setEnabled(true);
+                clearTracks.setEnabled(true);
+                printTracks.setEnabled(true);
+            }else{
+                gpsStatusTextView.setText("location service is disabled");
+                Toast.makeText(getApplicationContext(), "Need to enable location", Toast.LENGTH_SHORT).show();
+            }
+        }//if (requestCode == *another activity constant*){
+            /*
+            if(resultCode == RESULT_OK){
+                if(!bluetoothAdapter.isEnabled()) {
+                    CheckBlueToothState();
+                }
+            }
+            */
+        //}
     }
 
 }
