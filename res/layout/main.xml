@@ -33,7 +33,10 @@
         android:id="@+id/startStopLinearLayout"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="5dp"
         android:layout_below="@+id/gpsGetPosition" >
 
         <Button
@@ -42,7 +45,7 @@
                 android:layout_height="fill_parent"
                 android:text="Start"
                 android:layout_weight="1"
-                android:enabled="true"
+                android:enabled="false"
                 />
         <Button
                 android:id="@+id/stopTracksButton"
@@ -50,7 +53,7 @@
                 android:layout_height="fill_parent"
                 android:text="Stop"
                 android:layout_weight="1"
-                android:enabled="true"
+                android:enabled="false"
                 />
         <Button
                 android:id="@+id/clearMilesButton"
@@ -58,7 +61,15 @@
                 android:layout_height="match_parent"
                 android:text="Clear"
                 android:layout_weight="1"
-                android:enabled="true"
+                android:enabled="false"
+                />
+        <Button
+                android:id="@+id/printButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="Print"
+                android:layout_weight="1"
+                android:enabled="false"
                 />
     </LinearLayout>
 
@@ -84,8 +95,18 @@
                 android:layout_height="match_parent"
                 android:textSize="30sp"
                 android:textAlignment="center"
+                android:textIsSelectable="true"
                 android:text="0.0 mi"
-                android:layout_weight="1"
+                android:layout_weight="2"
+                />
+        <TextView
+                android:id="@+id/indexTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textSize="30sp"
+                android:paddingLeft="20dp"
+                android:textAlignment="center"
+                android:text="0"
                 />
     </LinearLayout>
 
