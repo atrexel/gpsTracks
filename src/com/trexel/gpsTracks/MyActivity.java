@@ -2,12 +2,9 @@ package com.trexel.gpsTracks;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Location;
-import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
@@ -31,9 +28,9 @@ public class MyActivity extends Activity {
     final int REQUEST_ENABLE_LOCATION = 35;
 
     private class Coordinate{
-        double latitude;
-        double longitude;
-        String timestamp;
+        double latitude = 0.0;
+        double longitude = 0.0;
+        String timestamp = "";
     }
 
     ArrayList<Coordinate> coordinateList = new ArrayList<Coordinate>();
@@ -43,6 +40,7 @@ public class MyActivity extends Activity {
     double totalMiles = 0.0;
     double totalNaticalMiles = 0.0;
     int indexing = 0;
+    final int SLEEP_SECONDS = 3;
 
     GPSManager gps;
     Location location;
@@ -338,10 +336,13 @@ public class MyActivity extends Activity {
 
                     //update the mileage
                     double miles = updateMilage();
-                    //totalMiles = totalMiles + miles;
                     indexing = indexing + 1;
-
-                    Log.v("UpdateMileage", "current miles: "+miles+" mi");
+                    if(miles > 0) {
+                        totalMiles = totalMiles + miles;
+                        Log.v("UpdateMileage", "calc miles: "+miles+" mi");
+                        Log.v("UpdateMileage", "tot miles:  "+totalMiles+" mi");
+                        Log.v("UpdateMileage", "nat miles:  "+totalNaticalMiles+" mi");
+                    }
 
                     // Must use the runOnUiThread method to update UI elements
                     runOnUiThread(new Runnable() {
@@ -349,13 +350,13 @@ public class MyActivity extends Activity {
                         public void run() {
                             threadMileageTextView.setText(totalMiles+" mi");
                             threadIndexTextView.setText(indexing+"");
-                            threadDisplayEditText.append("  ["+coordinateList.get(indexing-1).latitude+", "+
-                                    coordinateList.get(indexing-1).longitude+"]\n");
+                            threadDisplayEditText.append(coordinateList.get(indexing-1).latitude+","+
+                                    coordinateList.get(indexing-1).longitude+"\n");
                         }
                     });
 
                     try{
-                        sleep(3000);
+                        sleep(SLEEP_SECONDS * 1000);
                     }catch(Exception e){
                         //error trying to sleep...
                     }
@@ -367,25 +368,12 @@ public class MyActivity extends Activity {
 
 
     java.util.Date date = new java.util.Date();
-    Format formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"); //("yyyy-MM-dd_HH-mm-ss");
+    Format formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     public double updateMilage(){
+        double miles = 0.0;
         //first create a new Coordinate
         Coordinate newCoord = new Coordinate();
-
-        //Log.v("getCoordinates","\ncurrentGPS: "+location.getLatitude());
-        //Log.v("getCoordinates","currentGPS: "+location.getLongitude()+"\n");
-        //Log.v("getCoordinates","currentLocation: "+location.getLatitude());
-        //Log.v("getCoordinates","currentLocation: "+location.getLongitude()+"\n");
         location = gps.getLocation();
-        Log.v("getCoordinates",".\n******  UPDATE LOCATION  ******\n.");
-        Log.v("getCoordinates","TOTAL MILES: "+totalMiles);
-        Log.v("getCoordinates","TOTAL MILES: "+totalNaticalMiles+"\n.");
-
-        Log.v("getCoordinates","currentGPS: "+location.getLatitude());
-        Log.v("getCoordinates","currentGPS: "+location.getLongitude()+"\n");
-        Log.v("getCoordinates","currentLocation: "+location.getLatitude());
-        Log.v("getCoordinates","currentLocation: "+location.getLongitude()+"\n\n");
-
 
         // add the current latitude and longitude and timestamp
         if(location != null) {
@@ -400,29 +388,80 @@ public class MyActivity extends Activity {
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
 
-        Log.v("UpdateMileage", "adding new coordinate:\n lat:"+newCoord.latitude+"\nlon: "+
-                newCoord.longitude+"\ntime: "+newCoord.timestamp+"\n\n");
+        Log.v("UpdateMileage", "nextCoord: ("+newCoord.latitude+",  "+
+                newCoord.longitude+") ["+newCoord.timestamp+"]");
 
         //update the mileage in the textview
         int index = coordinateList.indexOf(newCoord);
 
         Log.v("UpdateMileage", "new coordinate index:"+index);
 
-        double miles = 0.0;
         if(index > 0) {
-            double lat1 = coordinateList.get(index).latitude;
-            double lon1 = coordinateList.get(index).longitude;
+
+            double lat1 = coordinateList.get(index-1).latitude;
+            double lon1 = coordinateList.get(index-1).longitude;
             double lat2 = coordinateList.get(index).latitude;
             double lon2 = coordinateList.get(index).longitude;
 
-            //calculate current miles
-            miles = distFrom(lat1, lon1, lat2, lon2);
-            totalNaticalMiles = totalNaticalMiles +
-                    (distance(lat1, lon1, lat2, lon2, 'M')*0.00062137)*Math.pow(10,3);
+            if(!(lat1 == lat2 && lon1 == lon2)) {
+                Log.v("UpdateMileage", ".\n.\n........ updating miles ........\n.");
+                miles = 0.0;
+                //calculate current miles
+                totalNaticalMiles = totalNaticalMiles + distFrom(lat1, lon1, lat2, lon2);
+                miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
+            }
         }
-        Log.v("UpdateMileage", "distance: "+miles);
         return miles;
     }//end updateMileage
+
+
+    public static double distFrom(double lat1, double lng1, double lat2, double lng2) {
+        double earthRadius = 3958.75;
+        double dLat = Math.toRadians(lat2-lat1);
+        double dLng = Math.toRadians(lng2-lng1);
+        double sindLat = Math.sin(dLat / 2);
+        double sindLng = Math.sin(dLng / 2);
+        double a = Math.pow(sindLat, 2) + Math.pow(sindLng, 2)
+                * Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2));
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        double dist = earthRadius * c;
+
+        return dist;
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*:  This function calculates distance from latitude and longitude  :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double distance(double lat1, double lon1, double lat2, double lon2, char unit) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        if (unit == 'K') {
+            dist = dist * 1.609344;
+        } else if (unit == 'N') {
+            dist = dist * 0.8684;
+        }
+        return (dist);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts decimal degrees to radians             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts radians to decimal degrees             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
+    }
+
+
 
 
     @Override
@@ -492,54 +531,6 @@ public class MyActivity extends Activity {
         printTracks.setEnabled(false);
     }//end onStop()
     */
-
-
-
-    public static double distFrom(double lat1, double lng1, double lat2, double lng2) {
-        double earthRadius = 3958.75;
-        double dLat = Math.toRadians(lat2-lat1);
-        double dLng = Math.toRadians(lng2-lng1);
-        double sindLat = Math.sin(dLat / 2);
-        double sindLng = Math.sin(dLng / 2);
-        double a = Math.pow(sindLat, 2) + Math.pow(sindLng, 2)
-                * Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2));
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        double dist = earthRadius * c;
-
-        return dist;
-    }
-
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    /*:  This function calculates distance from latitude and longitude  :*/
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    private double distance(double lat1, double lon1, double lat2, double lon2, char unit) {
-        double theta = lon1 - lon2;
-        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
-        dist = Math.acos(dist);
-        dist = rad2deg(dist);
-        dist = dist * 60 * 1.1515;
-        if (unit == 'K') {
-            dist = dist * 1.609344;
-        } else if (unit == 'N') {
-            dist = dist * 0.8684;
-        }
-        return (dist);
-    }
-
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    /*::  This function converts decimal degrees to radians             :*/
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    private double deg2rad(double deg) {
-        return (deg * Math.PI / 180.0);
-    }
-
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    /*::  This function converts radians to decimal degrees             :*/
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    private double rad2deg(double rad) {
-        return (rad * 180 / Math.PI);
-    }
 
 
     //handles intent callbacks
