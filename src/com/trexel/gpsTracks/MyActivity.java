@@ -29,7 +29,7 @@ public class MyActivity extends Activity {
     //class intent constants
     final int REQUEST_ENABLE_LOCATION = 35;
     //class constants
-    final int SLEEP_SECONDS = 3;
+    final int SLEEP_SECONDS = 5;
 
     private class Coordinate{
         double latitude = 0.0;
@@ -43,10 +43,10 @@ public class MyActivity extends Activity {
     Thread getCoordinates;
     double totalMiles = 0.0;
     double totalNaticalMiles = 0.0;
-    int indexing = 0;
+    int coordIndex = 0;
 
     GPSManager gps;
-    Location location;
+    //Location location; //seems unecessary
 
     Button locationToggle;
     Button getPosition;
@@ -87,7 +87,8 @@ public class MyActivity extends Activity {
 
             try {
                 //gps should already be instantited from the onStart method
-                location = gps.getLocation();
+                gps.getLocation();  //should not save the returned location
+                //location = gps.getLocation();
                 //displayEditText.append("location:\n"+location+"\n\n");
             }catch(Exception e){
                 Log.e("GPS", "ERROR: "+e);
@@ -116,7 +117,7 @@ public class MyActivity extends Activity {
             public void onClick(View v) {
                 gps = new GPSManager(getApplicationContext());
                 if (gps.isGPSEnabled && gps.isNetworkEnabled) {
-                    Toast.makeText(getApplicationContext(), "Already Enabled", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Location is currently Enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(true);
                     startTracks.setEnabled(true);
                     stopTracks.setEnabled(true);
@@ -125,6 +126,7 @@ public class MyActivity extends Activity {
 
                     settingsAlert.show();
                 } else {
+                    Toast.makeText(getApplicationContext(), "Location is currently Disabled", Toast.LENGTH_SHORT).show();
                     //disable user from clicking location dependant buttons
                     getPosition.setEnabled(false);
                     startTracks.setEnabled(false);
@@ -133,7 +135,6 @@ public class MyActivity extends Activity {
                     printTracks.setEnabled(false);
                     //need to turn on gps; must ask user to do this in settings
                     gpsStatusTextView.setText("location service is disabled");
-                    Toast.makeText(getApplicationContext(), "Please enable location", Toast.LENGTH_SHORT).show();
                     settingsAlert.show();
                 }
             }
@@ -144,9 +145,10 @@ public class MyActivity extends Activity {
             public void onClick(View v) {
                 if(gps.isGPSEnabled && gps.isNetworkEnabled){
                     if(gps.canGetLocation) {
+                        gps.getLocation(); //updates latitude and longitude
                         Double latitude = gps.getLatitude();
                         Double longitude = gps.getLongitude();
-                        displayEditText.append("Current Location:\n    [" + latitude + ", " + longitude + "]\n\n");
+                        displayEditText.append("Current Location:\n    " + latitude + "," + longitude + "\n\n");
                     }else{
                         Toast.makeText(getApplicationContext(), "Can't get location", Toast.LENGTH_SHORT).show();
                     }
@@ -174,11 +176,13 @@ public class MyActivity extends Activity {
                         //starts a new tracks thread
                         pollGPS = true;
                         isCleared = false;
-                        Log.v("UpdateMileage", "START BUTTON:: starting new getGPSCoordinates Thread");
+                        Log.v("UpdateMileage", ".\n******************************************************\n"+
+                                "START BUTTON:: starting new getGPSCoordinates Thread\n"+
+                                "*******************************************************");
                         getCoordinates = new getGPSCoordinates();
                         getCoordinates.start();
                     }else{
-                        Log.v("UpdateMileage", "START BUTTON:: !isClear");
+                        Log.v("UpdateMileage", "START BUTTON:: !isClear, restarting previous polling");
                         //simply restart current tracks thread
                         pollGPS = true;
                     }
@@ -201,7 +205,7 @@ public class MyActivity extends Activity {
                     Toast.makeText(getApplicationContext(), "Tracks Stopped", Toast.LENGTH_SHORT).show();
                     pollGPS = false;
 
-                    mileageTextView.setText(totalMiles+" mi");
+                    /*
                     //loop through and print out current coordinates in coordinateList
                     displayEditText.append("Current Coordinates:\n");
                     for (Coordinate coord : coordinateList) {
@@ -209,6 +213,7 @@ public class MyActivity extends Activity {
                                 coord.longitude + "] "+coordinateList.indexOf(coord)+"\n");
                     }
                     displayEditText.append("\n");
+                    */
                 }else{
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
@@ -228,13 +233,13 @@ public class MyActivity extends Activity {
                     Toast.makeText(getApplicationContext(), "Cleared Mileage", Toast.LENGTH_SHORT).show();
                     isCleared = true;
                     coordinateList = new ArrayList<Coordinate>();
-                    //reset the mileageTextView, displayEditText, and totalMiles
-                    mileageTextView.setText("0.0 mi");
-                    displayEditText.setText("");
-                    indexTextView.setText("0");
-                    indexing = 0;
+                    coordIndex = 0;
                     totalMiles = 0.0;
                     totalNaticalMiles = 0.0;
+                    //reset the mileageTextView, displayEditText, and totalMiles
+                    mileageTextView.setText("0.00 mi");
+                    displayEditText.setText("");
+                    indexTextView.setText("0");
                 }else{
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
@@ -273,12 +278,6 @@ public class MyActivity extends Activity {
                             String[]entries = myPoint.split(",");
                             writer.writeNext(entries);
                         }
-                        writer.close();
-
-                        //String[] entries = "first#second#third".split("#"); // array of your values
-                        //Log.v("csvWriter", "entries: "+entries[0]+", "+entries[1]+", "+entries[2]);
-                        //writer.writeNext(entries);
-                        //Log.v("csvWriter", "writer: "+writer);
                         writer.close();
                     }
                     catch (IOException e)
@@ -333,20 +332,15 @@ public class MyActivity extends Activity {
         EditText threadDisplayEditText = (EditText) findViewById(R.id.displayEditText);
 
         public void run() {
-            //System.out.println("Hello from a thread!");
             //user has started a new tracking period
             Log.v("UpdateMileage", "getGPSCoordinates Thread Start");
 
             while(!isCleared) {
                 //user may want to resume tracking
                 while(pollGPS){
-                    //add a new coordinate
-
-
-
-                    //update the mileage
+                    //add latest coordinate and update the mileage
                     double miles = updateMilage();
-                    indexing = indexing + 1;
+                    coordIndex = coordIndex + 1;
                     if(miles > 0) {
                         totalMiles = totalMiles + miles;
                         Log.v("UpdateMileage", "calc miles: "+miles+" mi");
@@ -359,9 +353,9 @@ public class MyActivity extends Activity {
                         @Override
                         public void run() {
                             threadMileageTextView.setText(numformatter.format(totalMiles)+" mi");
-                            threadIndexTextView.setText(indexing+"");
-                            threadDisplayEditText.append(coordinateList.get(indexing-1).latitude+","+
-                                    coordinateList.get(indexing-1).longitude+"\n");
+                            threadIndexTextView.setText(coordIndex+"");
+                            threadDisplayEditText.append(coordinateList.get(coordIndex-1).latitude+","+
+                                    coordinateList.get(coordIndex-1).longitude+"\n");
                         }
                     });
 
@@ -381,20 +375,17 @@ public class MyActivity extends Activity {
     Format formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     public double updateMilage(){
         double miles = 0.0;
+
+        //get updated latitude and longitude
+        gps.getLocation();
+        //location = gps.getLocation(); //no need to save the location object
+
         //first create a new Coordinate
         Coordinate newCoord = new Coordinate();
-        location = gps.getLocation();
-
         // add the current latitude and longitude and timestamp
-        if(location != null) {
-            newCoord.latitude = gps.getLatitude(); //location.getLatitude();
-            newCoord.longitude = gps.getLongitude(); //location.getLongitude();
-        }else{
-            //location is off....
-        }
-
-        String dateString = formatter.format(date);
-        newCoord.timestamp = dateString;
+        newCoord.latitude = gps.getLatitude(); //location.getLatitude();
+        newCoord.longitude = gps.getLongitude(); //location.getLongitude();
+        newCoord.timestamp = formatter.format(date);
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
         int index = coordinateList.indexOf(newCoord);
@@ -475,7 +466,6 @@ public class MyActivity extends Activity {
             gpsStatusTextView.setText("location service is enabled");
             gps = new GPSManager(this);
             getCoordinates = new getGPSCoordinates();
-            location = gps.getLocation();
             getPosition.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
@@ -495,7 +485,6 @@ public class MyActivity extends Activity {
             gpsStatusTextView.setText("location service is enabled");
             gps = new GPSManager(this);
             getCoordinates = new getGPSCoordinates();
-            location = gps.getLocation();
             getPosition.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
@@ -515,7 +504,6 @@ public class MyActivity extends Activity {
             gpsStatusTextView.setText("location service is enabled");
             gps = new GPSManager(this);
             getCoordinates = new getGPSCoordinates();
-            location = gps.getLocation();
             getPosition.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
@@ -562,8 +550,6 @@ public class MyActivity extends Activity {
             if(gps.isGPSEnabled && gps.isNetworkEnabled){
                 gpsStatusTextView.setText("location service is enabled");
                 gps = new GPSManager(this);
-                getCoordinates = new getGPSCoordinates();
-                location = gps.getLocation();
                 getPosition.setEnabled(true);
                 startTracks.setEnabled(true);
                 stopTracks.setEnabled(true);

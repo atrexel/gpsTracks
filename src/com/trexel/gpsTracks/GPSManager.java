@@ -39,12 +39,14 @@ public class GPSManager extends Service implements LocationListener {
     // Global time constants
 
     // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 2; // 2 meters
-    //private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
 
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 1; // 1 second
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 45; // 45 seconds
     //private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1; // 1 minute
+
+    //minimum time for wifi???
+    private static final long MIN_TIME_BETWEEN_WIFI_REPORTS = 45 * 1000; // 45 seconds
 
     // Milliseconds per second
     private static final int MILLISECONDS_PER_SECOND = 1000;
@@ -86,23 +88,6 @@ public class GPSManager extends Service implements LocationListener {
             } else {
                 this.canGetLocation = true;
 
-                // First get location from Network Provider
-                if (isNetworkEnabled) {
-                    locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
-                            MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-                    Log.d("Network", "Network");
-                    if (locationManager != null) {
-                        location = locationManager
-                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                        if (location != null) {
-                            latitude = location.getLatitude();
-                            longitude = location.getLongitude();
-                        }
-                    }
-                }
-
                 // if GPS Enabled get lat/long using GPS Services
                 if (isGPSEnabled) {
                     if (location == null) {
@@ -118,6 +103,23 @@ public class GPSManager extends Service implements LocationListener {
                                 latitude = location.getLatitude();
                                 longitude = location.getLongitude();
                             }
+                        }
+                    }
+                }
+
+                // First get location from Network Provider
+                if (isNetworkEnabled) {
+                    locationManager.requestLocationUpdates(
+                            LocationManager.NETWORK_PROVIDER,
+                            MIN_TIME_BW_UPDATES,
+                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+                    Log.d("Network", "Network");
+                    if (locationManager != null) {
+                        location = locationManager
+                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                        if (location != null) {
+                            latitude = location.getLatitude();
+                            longitude = location.getLongitude();
                         }
                     }
                 }
@@ -204,6 +206,13 @@ public class GPSManager extends Service implements LocationListener {
         alertDialog.show();
     }
 
+
+
+    /*
+     * class seems seemingly not to be coded for using the GPS service
+     * but rather maintains the user will call getLocation() on frequent
+     * intervals to update the latitude and longitude position
+     */
     // Define the callback method that receives location updates
     @Override
     public void onLocationChanged(Location location) {
