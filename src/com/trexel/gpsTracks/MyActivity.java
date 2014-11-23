@@ -18,7 +18,9 @@ import com.opencsv.CSVWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.Format;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
@@ -26,6 +28,8 @@ public class MyActivity extends Activity {
 
     //class intent constants
     final int REQUEST_ENABLE_LOCATION = 35;
+    //class constants
+    final int SLEEP_SECONDS = 3;
 
     private class Coordinate{
         double latitude = 0.0;
@@ -40,7 +44,6 @@ public class MyActivity extends Activity {
     double totalMiles = 0.0;
     double totalNaticalMiles = 0.0;
     int indexing = 0;
-    final int SLEEP_SECONDS = 3;
 
     GPSManager gps;
     Location location;
@@ -74,7 +77,7 @@ public class MyActivity extends Activity {
         indexTextView = (TextView) findViewById(R.id.indexTextView);
         displayEditText = (EditText) findViewById(R.id.displayEditText);
 
-        Log.v("MainApp", "Setting up GPSManager Object");
+        //setup new instance of gps manager
         gps = new GPSManager(MyActivity.this);
 
         //check if user has already enabled gps
@@ -82,8 +85,13 @@ public class MyActivity extends Activity {
             //means gps is on and it found providers for GPS and Network
             gpsStatusTextView.setText("location is enabled");
 
-            location = gps.getLocation();
-            //displayEditText.append("location:\n"+location+"\n\n");
+            try {
+                //gps should already be instantited from the onStart method
+                location = gps.getLocation();
+                //displayEditText.append("location:\n"+location+"\n\n");
+            }catch(Exception e){
+                Log.e("GPS", "ERROR: "+e);
+            }
 
             //allow user to click location dependant buttons
             getPosition.setEnabled(true);
@@ -316,6 +324,8 @@ public class MyActivity extends Activity {
 
     }//end onCreate()
 
+
+    NumberFormat numformatter = new DecimalFormat("#0.00");
     private class getGPSCoordinates extends Thread implements Runnable {
 
         TextView threadMileageTextView = (TextView) findViewById(R.id.mileageTextView);
@@ -348,7 +358,7 @@ public class MyActivity extends Activity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            threadMileageTextView.setText(totalMiles+" mi");
+                            threadMileageTextView.setText(numformatter.format(totalMiles)+" mi");
                             threadIndexTextView.setText(indexing+"");
                             threadDisplayEditText.append(coordinateList.get(indexing-1).latitude+","+
                                     coordinateList.get(indexing-1).longitude+"\n");
@@ -377,8 +387,8 @@ public class MyActivity extends Activity {
 
         // add the current latitude and longitude and timestamp
         if(location != null) {
-            newCoord.latitude = location.getLatitude(); //gps.getLatitude();
-            newCoord.longitude = location.getLongitude(); //gps.getLongitude();
+            newCoord.latitude = gps.getLatitude(); //location.getLatitude();
+            newCoord.longitude = gps.getLongitude(); //location.getLongitude();
         }else{
             //location is off....
         }
@@ -387,26 +397,20 @@ public class MyActivity extends Activity {
         newCoord.timestamp = dateString;
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
-
-        Log.v("UpdateMileage", "nextCoord: ("+newCoord.latitude+",  "+
-                newCoord.longitude+") ["+newCoord.timestamp+"]");
-
-        //update the mileage in the textview
         int index = coordinateList.indexOf(newCoord);
 
-        Log.v("UpdateMileage", "new coordinate index:"+index);
+        Log.v("UpdateMileage", "["+index+"] nextCoord: ("+newCoord.latitude+",  "+
+                newCoord.longitude+") ["+newCoord.timestamp+"]");
 
         if(index > 0) {
-
             double lat1 = coordinateList.get(index-1).latitude;
             double lon1 = coordinateList.get(index-1).longitude;
             double lat2 = coordinateList.get(index).latitude;
             double lon2 = coordinateList.get(index).longitude;
 
             if(!(lat1 == lat2 && lon1 == lon2)) {
+                //if coordinate is different from previous, calculate distance
                 Log.v("UpdateMileage", ".\n.\n........ updating miles ........\n.");
-                miles = 0.0;
-                //calculate current miles
                 totalNaticalMiles = totalNaticalMiles + distFrom(lat1, lon1, lat2, lon2);
                 miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
             }
@@ -463,6 +467,25 @@ public class MyActivity extends Activity {
 
 
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        gps = new GPSManager(MyActivity.this);
+        if(gps.isGPSEnabled && gps.isNetworkEnabled){
+            gpsStatusTextView.setText("location service is enabled");
+            gps = new GPSManager(this);
+            getCoordinates = new getGPSCoordinates();
+            location = gps.getLocation();
+            getPosition.setEnabled(true);
+            startTracks.setEnabled(true);
+            stopTracks.setEnabled(true);
+            clearTracks.setEnabled(true);
+            printTracks.setEnabled(true);
+        }else{
+            gpsStatusTextView.setText("location service is disabled");
+            Toast.makeText(getApplicationContext(), "Need to enable location", Toast.LENGTH_SHORT).show();
+        }
+    }//end onStart()
 
     @Override
     public void onResume() {
@@ -518,8 +541,6 @@ public class MyActivity extends Activity {
         printTracks.setEnabled(false);
     }//end onPause()
 
-
-    /* handled in onPause() now
     @Override
     public void onStop() {
         super.onStop();
@@ -530,7 +551,6 @@ public class MyActivity extends Activity {
         clearTracks.setEnabled(false);
         printTracks.setEnabled(false);
     }//end onStop()
-    */
 
 
     //handles intent callbacks
