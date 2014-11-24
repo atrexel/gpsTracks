@@ -29,24 +29,27 @@ public class MyActivity extends Activity {
     //class intent constants
     final int REQUEST_ENABLE_LOCATION = 35;
     //class constants
-    final int SLEEP_SECONDS = 5;
+    final int SLEEP_SECONDS = 2;
 
     private class Coordinate{
         double latitude = 0.0;
         double longitude = 0.0;
         String timestamp = "";
+        double accuracy = 0.0;
     }
 
     ArrayList<Coordinate> coordinateList = new ArrayList<Coordinate>();
+    ArrayList<Coordinate> coordinateList2 = new ArrayList<Coordinate>();
     boolean pollGPS = false;
     boolean isCleared = true;
     Thread getCoordinates;
     double totalMiles = 0.0;
+    double totalMiles2 = 0.0;
     double totalNaticalMiles = 0.0;
     int coordIndex = 0;
 
     GPSManager gps;
-    //Location location; //seems unecessary
+    Location location; //seems unecessary
 
     Button locationToggle;
     Button getPosition;
@@ -84,15 +87,6 @@ public class MyActivity extends Activity {
         if(gps.isGPSEnabled && gps.isNetworkEnabled){
             //means gps is on and it found providers for GPS and Network
             gpsStatusTextView.setText("location is enabled");
-
-            try {
-                //gps should already be instantited from the onStart method
-                gps.getLocation();  //should not save the returned location
-                //location = gps.getLocation();
-                //displayEditText.append("location:\n"+location+"\n\n");
-            }catch(Exception e){
-                Log.e("GPS", "ERROR: "+e);
-            }
 
             //allow user to click location dependant buttons
             getPosition.setEnabled(true);
@@ -145,10 +139,9 @@ public class MyActivity extends Activity {
             public void onClick(View v) {
                 if(gps.isGPSEnabled && gps.isNetworkEnabled){
                     if(gps.canGetLocation) {
-                        gps.getLocation(); //updates latitude and longitude
-                        Double latitude = gps.getLatitude();
-                        Double longitude = gps.getLongitude();
-                        displayEditText.append("Current Location:\n    " + latitude + "," + longitude + "\n\n");
+                        location = gps.getLocation(); //updates latitude and longitude
+                        displayEditText.append("Current Location:\n    "+location.getLatitude()+
+                                "," + location.getLongitude() + "\n\n");
                     }else{
                         Toast.makeText(getApplicationContext(), "Can't get location", Toast.LENGTH_SHORT).show();
                     }
@@ -171,19 +164,22 @@ public class MyActivity extends Activity {
             public void onClick(View v) {
                 if(gps.isGPSEnabled && gps.isNetworkEnabled) {
                     Toast.makeText(getApplicationContext(), "Tracks Starting", Toast.LENGTH_SHORT).show();
+
                     if(isCleared) {
                         Log.v("UpdateMileage", "START BUTTON:: isClear");
                         //starts a new tracks thread
+                        location = gps.getLocation();
                         pollGPS = true;
                         isCleared = false;
-                        Log.v("UpdateMileage", ".\n******************************************************\n"+
-                                "START BUTTON:: starting new getGPSCoordinates Thread\n"+
-                                "*******************************************************");
+                        Log.v("UpdateMileage", ".\n********************************************************\n"+
+                                "* START BUTTON:: starting new getGPSCoordinates Thread *\n"+
+                                "********************************************************");
                         getCoordinates = new getGPSCoordinates();
                         getCoordinates.start();
                     }else{
                         Log.v("UpdateMileage", "START BUTTON:: !isClear, restarting previous polling");
                         //simply restart current tracks thread
+                        location = gps.getLocation();
                         pollGPS = true;
                     }
                 }else{
@@ -204,16 +200,24 @@ public class MyActivity extends Activity {
                 if(gps.isGPSEnabled && gps.isNetworkEnabled) {
                     Toast.makeText(getApplicationContext(), "Tracks Stopped", Toast.LENGTH_SHORT).show();
                     pollGPS = false;
+                    gps.stopUsingGPS();
 
-                    /*
-                    //loop through and print out current coordinates in coordinateList
-                    displayEditText.append("Current Coordinates:\n");
+                    /*//loop through and print out current coordinates in coordinateList
+                    //displayEditText.append("Current Coordinates:\n");
                     for (Coordinate coord : coordinateList) {
                         displayEditText.append("[" + coord.latitude + ", " +
                                 coord.longitude + "] "+coordinateList.indexOf(coord)+"\n");
+                    }*/
+                    Log.v("UpdateMileage", "coordinate list1: ("+index+" pts)");
+                    for (Coordinate coord : coordinateList) {
+                        Log.v("UpdateMileage", "["+coordinateList.indexOf(coord)+"] "+
+                                coord.latitude+","+coord.longitude+" ("+coord.accuracy+") ["+coord.timestamp+"]");
                     }
-                    displayEditText.append("\n");
-                    */
+                    Log.v("UpdateMileage", "coordinate list2: ("+index2+" pts)");
+                    for (Coordinate coord : coordinateList2) {
+                        Log.v("UpdateMileage", "["+coordinateList2.indexOf(coord)+"] "+
+                                coord.latitude+","+coord.longitude+" ("+coord.accuracy+") ["+coord.timestamp+"]");
+                    }
                 }else{
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
@@ -231,10 +235,14 @@ public class MyActivity extends Activity {
             public void onClick(View v) {
                 if(gps.isGPSEnabled && gps.isNetworkEnabled) {
                     Toast.makeText(getApplicationContext(), "Cleared Mileage", Toast.LENGTH_SHORT).show();
+                    pollGPS = false;
                     isCleared = true;
+                    //create new ArrayList of Coordinates
                     coordinateList = new ArrayList<Coordinate>();
+                    coordinateList2 = new ArrayList<Coordinate>();
                     coordIndex = 0;
                     totalMiles = 0.0;
+                    totalMiles2 = 0.0;
                     totalNaticalMiles = 0.0;
                     //reset the mileageTextView, displayEditText, and totalMiles
                     mileageTextView.setText("0.00 mi");
@@ -338,15 +346,8 @@ public class MyActivity extends Activity {
             while(!isCleared) {
                 //user may want to resume tracking
                 while(pollGPS){
-                    //add latest coordinate and update the mileage
-                    double miles = updateMilage();
-                    coordIndex = coordIndex + 1;
-                    if(miles > 0) {
-                        totalMiles = totalMiles + miles;
-                        Log.v("UpdateMileage", "calc miles: "+miles+" mi");
-                        Log.v("UpdateMileage", "tot miles:  "+totalMiles+" mi");
-                        Log.v("UpdateMileage", "nat miles:  "+totalNaticalMiles+" mi");
-                    }
+                    //update the mileage
+                    updateMilage();
 
                     // Must use the runOnUiThread method to update UI elements
                     runOnUiThread(new Runnable() {
@@ -373,38 +374,91 @@ public class MyActivity extends Activity {
 
     java.util.Date date = new java.util.Date();
     Format formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+    double miles = 0.0;
+    int index = 0;
+    int index2 = 0;
     public double updateMilage(){
-        double miles = 0.0;
-
         //get updated latitude and longitude
-        gps.getLocation();
+        location = gps.getLocation();
+        Log.v("UpdateMileage", "location info: \n.\n"+
+                //"time: "+location.getTime()+"\n"+
+                //"provider: "+location.getProvider()+"\n"+
+                //"toString(): "+location.toString()+"\n"+
+                //"describeContents: "+location.describeContents()+"\n"+
+                "getAccuracy: "+location.getAccuracy()+" meters \n"+
+                "getAccuracy: "+numformatter.format(location.getAccuracy() * 0.000621371192)+" mi \n"+
+                "speed: "+location.getSpeed()+"\n.\n.");
         //location = gps.getLocation(); //no need to save the location object
 
         //first create a new Coordinate
         Coordinate newCoord = new Coordinate();
         // add the current latitude and longitude and timestamp
-        newCoord.latitude = gps.getLatitude(); //location.getLatitude();
-        newCoord.longitude = gps.getLongitude(); //location.getLongitude();
+        newCoord.latitude = location.getLatitude();
+        newCoord.longitude = location.getLongitude();
         newCoord.timestamp = formatter.format(date);
+        newCoord.accuracy = location.getAccuracy();
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
-        int index = coordinateList.indexOf(newCoord);
-
+        coordIndex = coordIndex + 1;
+        if(location.getAccuracy() < 1100) {
+            coordinateList2.add(newCoord);
+            index2 = coordinateList2.indexOf(newCoord);
+        }
+        index = coordinateList.indexOf(newCoord);
         Log.v("UpdateMileage", "["+index+"] nextCoord: ("+newCoord.latitude+",  "+
-                newCoord.longitude+") ["+newCoord.timestamp+"]");
+                newCoord.longitude+") "+newCoord.accuracy+" ["+newCoord.timestamp+"]");
 
+        /*
+        //compare the gps update with the location update
+        Log.v("Compare", "gps: ("+gps.getLatitude()+",  "+
+                gps.getLongitude()+")");
+        Log.v("Compare", "loc: ("+location.getLatitude()+",  "+
+                location.getLongitude()+")");
+        */
+
+        miles = 0.0;
+        double lat1 = 0.0;
+        double lon1 = 0.0;
+        double lat2 = 0.0;
+        double lon2 = 0.0;
         if(index > 0) {
-            double lat1 = coordinateList.get(index-1).latitude;
-            double lon1 = coordinateList.get(index-1).longitude;
-            double lat2 = coordinateList.get(index).latitude;
-            double lon2 = coordinateList.get(index).longitude;
+            lat1 = coordinateList.get(index-1).latitude;
+            lon1 = coordinateList.get(index-1).longitude;
+            lat2 = coordinateList.get(index).latitude;
+            lon2 = coordinateList.get(index).longitude;
 
-            if(!(lat1 == lat2 && lon1 == lon2)) {
+            //if(!(lat1 == lat2 && lon1 == lon2)) {
                 //if coordinate is different from previous, calculate distance
                 Log.v("UpdateMileage", ".\n.\n........ updating miles ........\n.");
-                totalNaticalMiles = totalNaticalMiles + distFrom(lat1, lon1, lat2, lon2);
                 miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
+                if(miles > 0) {
+                    totalMiles = totalMiles + miles;
+                    Log.v("UpdateMileage", "calc miles: "+miles+" mi");
+                    Log.v("UpdateMileage", "totalMiles1:  "+totalMiles+" mi");
+                }
+            //}
+        }
+
+        miles = 0.0;
+        lat1 = 0.0;
+        lon1 = 0.0;
+        lat2 = 0.0;
+        lon2 = 0.0;
+        if(index2 > 0) {
+            lat1 = coordinateList2.get(index2-1).latitude;
+            lon1 = coordinateList2.get(index2-1).longitude;
+            lat2 = coordinateList2.get(index2).latitude;
+            lon2 = coordinateList2.get(index2).longitude;
+
+            //if(!(lat1 == lat2 && lon1 == lon2)) {
+            //if coordinate is different from previous, calculate distance
+            miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
+            if(miles > 0) {
+                totalMiles2 = totalMiles2 + miles;
+                Log.v("UpdateMileage", "calc miles: "+miles+" mi");
+                Log.v("UpdateMileage", "totalMiles2:  "+totalMiles2+" mi");
             }
+            //}
         }
         return miles;
     }//end updateMileage

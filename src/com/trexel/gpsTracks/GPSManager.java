@@ -224,7 +224,7 @@ public class GPSManager extends Service implements LocationListener {
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
 
-        Log.v("UpdateMileage","onLocationChange msg: "+msg);
+        Log.v("UpdateMileage",msg);
         //Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
 
