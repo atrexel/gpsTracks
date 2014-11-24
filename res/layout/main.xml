@@ -9,7 +9,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:padding="8dp"
+            android:padding="4dp"
             />
     <Button
             android:id="@+id/locationToggleButton"
@@ -20,15 +20,30 @@
             android:layout_margin="5dp"
             android:enabled="true"
             />
-    <Button
-            android:id="@+id/gpsGetPosition"
-            android:layout_below="@+id/locationToggleButton"
+    <LinearLayout
+            android:id="@+id/gpsLinearLayout"
+            android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Get Current Location"
             android:layout_margin="5dp"
-            android:enabled="false"
-            />
+            android:layout_below="@+id/locationToggleButton" >
+        <Button
+                android:id="@+id/gpsGetPosition"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:text=" Get Location"
+                android:layout_weight="1"
+                android:enabled="false"
+                />
+        <Button
+                android:id="@+id/gpsGetProviders"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:text="List Providers"
+                android:layout_weight="1"
+                android:enabled="false"
+                />
+    </LinearLayout>
     <LinearLayout
         android:id="@+id/startStopLinearLayout"
         android:layout_width="fill_parent"
@@ -37,7 +52,7 @@
         android:layout_marginRight="5dp"
         android:layout_marginBottom="10dp"
         android:layout_marginLeft="5dp"
-        android:layout_below="@+id/gpsGetPosition" >
+        android:layout_below="@+id/gpsLinearLayout" >
 
         <Button
                 android:id="@+id/startTracksButton"

@@ -23,6 +23,7 @@ import java.text.Format;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MyActivity extends Activity {
 
@@ -30,6 +31,13 @@ public class MyActivity extends Activity {
     final int REQUEST_ENABLE_LOCATION = 35;
     //class constants
     final int SLEEP_SECONDS = 2;
+
+
+    //date and update class variables
+    java.util.Date date = new java.util.Date();
+    Format dateformatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+    Format filedateformatter = new SimpleDateFormat("MM-dd-yyyy_HH-mm");
+    NumberFormat mileageformatter = new DecimalFormat("#0.00");
 
     private class Coordinate{
         double latitude = 0.0;
@@ -53,6 +61,7 @@ public class MyActivity extends Activity {
 
     Button locationToggle;
     Button getPosition;
+    Button listProviders;
     Button startTracks;
     Button stopTracks;
     Button clearTracks;
@@ -71,6 +80,7 @@ public class MyActivity extends Activity {
         //map class variables to xml elements
         locationToggle = (Button) findViewById(R.id.locationToggleButton);
         getPosition = (Button) findViewById(R.id.gpsGetPosition);
+        listProviders = (Button) findViewById(R.id.gpsGetProviders);
         startTracks = (Button) findViewById(R.id.startTracksButton);
         stopTracks = (Button) findViewById(R.id.stopTracksButton);
         clearTracks = (Button) findViewById(R.id.clearMilesButton);
@@ -90,6 +100,7 @@ public class MyActivity extends Activity {
 
             //allow user to click location dependant buttons
             getPosition.setEnabled(true);
+            listProviders.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
             clearTracks.setEnabled(true);
@@ -99,6 +110,7 @@ public class MyActivity extends Activity {
             gpsStatusTextView.setText("location service is disabled");
             //disable user from clicking location dependant buttons
             getPosition.setEnabled(false);
+            listProviders.setEnabled(false);
             startTracks.setEnabled(false);
             stopTracks.setEnabled(false);
             clearTracks.setEnabled(false);
@@ -113,6 +125,7 @@ public class MyActivity extends Activity {
                 if (gps.isGPSEnabled && gps.isNetworkEnabled) {
                     Toast.makeText(getApplicationContext(), "Location is currently Enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(true);
+                    listProviders.setEnabled(true);
                     startTracks.setEnabled(true);
                     stopTracks.setEnabled(true);
                     clearTracks.setEnabled(true);
@@ -123,6 +136,7 @@ public class MyActivity extends Activity {
                     Toast.makeText(getApplicationContext(), "Location is currently Disabled", Toast.LENGTH_SHORT).show();
                     //disable user from clicking location dependant buttons
                     getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
                     startTracks.setEnabled(false);
                     stopTracks.setEnabled(false);
                     clearTracks.setEnabled(false);
@@ -159,6 +173,38 @@ public class MyActivity extends Activity {
             }
         });
 
+        listProviders.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(gps.isGPSEnabled && gps.isNetworkEnabled){
+                    //list current providers
+                    List<String> providers = gps.listAllProviders();
+                    String bestProvider = gps.getBestProvider();
+                    displayEditText.append("Current Avalible Providers:\n");
+                    for (String provider : providers){
+                        if(provider.equals(bestProvider)){
+                            displayEditText.append("   " + provider + " (best for criteria)\n");
+                        } else{
+                            displayEditText.append("   " + provider + "\n");
+                        }
+                    }
+                    Toast.makeText(getApplicationContext(), "Best: "+bestProvider, Toast.LENGTH_SHORT).show();
+
+                }else{
+                    //need to turn on location
+                    gpsStatusTextView.setText("location service is disabled");
+                    getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
+                    startTracks.setEnabled(false);
+                    stopTracks.setEnabled(false);
+                    clearTracks.setEnabled(false);
+                    printTracks.setEnabled(false);
+                    Toast.makeText(getApplicationContext(), "Please enable location", Toast.LENGTH_SHORT).show();
+                    gps.showSettingsAlert();
+                }
+            }
+        });
+
         startTracks.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -171,6 +217,9 @@ public class MyActivity extends Activity {
                         location = gps.getLocation();
                         pollGPS = true;
                         isCleared = false;
+                        //reset the totals
+                        totalMiles = 0.0;
+                        totalMiles2 = 0.0;
                         Log.v("UpdateMileage", ".\n********************************************************\n"+
                                 "* START BUTTON:: starting new getGPSCoordinates Thread *\n"+
                                 "********************************************************");
@@ -186,6 +235,7 @@ public class MyActivity extends Activity {
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
                     startTracks.setEnabled(false);
                     stopTracks.setEnabled(false);
                     clearTracks.setEnabled(false);
@@ -208,12 +258,12 @@ public class MyActivity extends Activity {
                         displayEditText.append("[" + coord.latitude + ", " +
                                 coord.longitude + "] "+coordinateList.indexOf(coord)+"\n");
                     }*/
-                    Log.v("UpdateMileage", "coordinate list1: ("+index+" pts)");
+                    Log.v("UpdateMileage", "coordinate list1:");
                     for (Coordinate coord : coordinateList) {
                         Log.v("UpdateMileage", "["+coordinateList.indexOf(coord)+"] "+
                                 coord.latitude+","+coord.longitude+" ("+coord.accuracy+") ["+coord.timestamp+"]");
                     }
-                    Log.v("UpdateMileage", "coordinate list2: ("+index2+" pts)");
+                    Log.v("UpdateMileage", "coordinate list2:");
                     for (Coordinate coord : coordinateList2) {
                         Log.v("UpdateMileage", "["+coordinateList2.indexOf(coord)+"] "+
                                 coord.latitude+","+coord.longitude+" ("+coord.accuracy+") ["+coord.timestamp+"]");
@@ -222,6 +272,7 @@ public class MyActivity extends Activity {
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
                     startTracks.setEnabled(false);
                     stopTracks.setEnabled(false);
                     clearTracks.setEnabled(false);
@@ -252,6 +303,7 @@ public class MyActivity extends Activity {
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
                     startTracks.setEnabled(false);
                     stopTracks.setEnabled(false);
                     clearTracks.setEnabled(false);
@@ -273,10 +325,15 @@ public class MyActivity extends Activity {
                     {
                         Log.v("csvWriter", "Output filepath: "+Environment.getExternalStorageDirectory().getPath());
                         Log.v("csvWriter", "Output filepath: "+Environment.getRootDirectory().getPath());
+                        /* for actual data logging:
                         writer = new CSVWriter(new FileWriter(Environment.getExternalStorageDirectory().getPath()+
-                                "/trackPoints.csv"), ',');
+                                "trackPoints.csv"), ',');*/
+                        //logging for testing:
+                        writer = new CSVWriter(new FileWriter(Environment.getExternalStorageDirectory().getPath()+
+                                "/GpsTracksData/trackPoints_"+filedateformatter.format(date)+".csv"), ',');
                         //writer = new CSVWriter(new FileWriter(Environment.getRootDirectory().getPath()+
-                        //        "/trackPoints.csv"), ',');
+                        //        "/GpsTracksData/trackPoints_"+filedateformatter.format(date)+".csv"), ',');
+
 
                         for (Coordinate point : coordinateList){
                             String myPoint = "";
@@ -299,6 +356,7 @@ public class MyActivity extends Activity {
                     gpsStatusTextView.setText("location service is disabled");
                     Toast.makeText(getApplicationContext(), "Location must be enabled", Toast.LENGTH_SHORT).show();
                     getPosition.setEnabled(false);
+                    listProviders.setEnabled(false);
                     startTracks.setEnabled(false);
                     stopTracks.setEnabled(false);
                     clearTracks.setEnabled(false);
@@ -331,8 +389,6 @@ public class MyActivity extends Activity {
 
     }//end onCreate()
 
-
-    NumberFormat numformatter = new DecimalFormat("#0.00");
     private class getGPSCoordinates extends Thread implements Runnable {
 
         TextView threadMileageTextView = (TextView) findViewById(R.id.mileageTextView);
@@ -353,7 +409,7 @@ public class MyActivity extends Activity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            threadMileageTextView.setText(numformatter.format(totalMiles)+" mi");
+                            threadMileageTextView.setText(mileageformatter.format(totalMiles)+" mi");
                             threadIndexTextView.setText(coordIndex+"");
                             threadDisplayEditText.append(coordinateList.get(coordIndex-1).latitude+","+
                                     coordinateList.get(coordIndex-1).longitude+"\n");
@@ -372,30 +428,27 @@ public class MyActivity extends Activity {
     }//end getGPSCoordinates thread class
 
 
-    java.util.Date date = new java.util.Date();
-    Format formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-    double miles = 0.0;
-    int index = 0;
-    int index2 = 0;
     public double updateMilage(){
+        double miles = 0.0, lat1 = 0.0, lon1 = 0.0, lat2 = 0.0, lon2 = 0.0;
+        int index = 0, index2 = 0;
+
         //get updated latitude and longitude
         location = gps.getLocation();
+        /*
         Log.v("UpdateMileage", "location info: \n.\n"+
-                //"time: "+location.getTime()+"\n"+
                 //"provider: "+location.getProvider()+"\n"+
                 //"toString(): "+location.toString()+"\n"+
-                //"describeContents: "+location.describeContents()+"\n"+
                 "getAccuracy: "+location.getAccuracy()+" meters \n"+
-                "getAccuracy: "+numformatter.format(location.getAccuracy() * 0.000621371192)+" mi \n"+
-                "speed: "+location.getSpeed()+"\n.\n.");
-        //location = gps.getLocation(); //no need to save the location object
+                "getAccuracy: "+mileageformatter.format(location.getAccuracy() * 0.000621371192)+" mi \n");
+        */
+
 
         //first create a new Coordinate
         Coordinate newCoord = new Coordinate();
         // add the current latitude and longitude and timestamp
         newCoord.latitude = location.getLatitude();
         newCoord.longitude = location.getLongitude();
-        newCoord.timestamp = formatter.format(date);
+        newCoord.timestamp = dateformatter.format(date);
         newCoord.accuracy = location.getAccuracy();
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
@@ -405,61 +458,43 @@ public class MyActivity extends Activity {
             index2 = coordinateList2.indexOf(newCoord);
         }
         index = coordinateList.indexOf(newCoord);
-        Log.v("UpdateMileage", "["+index+"] nextCoord: ("+newCoord.latitude+",  "+
-                newCoord.longitude+") "+newCoord.accuracy+" ["+newCoord.timestamp+"]");
+        Log.v("UpdateMileage", "nextCoord: "+newCoord.latitude+","+
+                newCoord.longitude+" ("+newCoord.accuracy+") ["+newCoord.timestamp+"]");
 
-        /*
-        //compare the gps update with the location update
-        Log.v("Compare", "gps: ("+gps.getLatitude()+",  "+
-                gps.getLongitude()+")");
-        Log.v("Compare", "loc: ("+location.getLatitude()+",  "+
-                location.getLongitude()+")");
-        */
 
-        miles = 0.0;
-        double lat1 = 0.0;
-        double lon1 = 0.0;
-        double lat2 = 0.0;
-        double lon2 = 0.0;
+        //calculate distance between coordinate points
+        Log.v("UpdateMileage", ".\n.\n........ updating miles (via "+location.getProvider()+") ........\n.");
         if(index > 0) {
+            miles = lat1 = lon1 = lat2 = lon2 = 0.0;
             lat1 = coordinateList.get(index-1).latitude;
             lon1 = coordinateList.get(index-1).longitude;
             lat2 = coordinateList.get(index).latitude;
             lon2 = coordinateList.get(index).longitude;
 
-            //if(!(lat1 == lat2 && lon1 == lon2)) {
-                //if coordinate is different from previous, calculate distance
-                Log.v("UpdateMileage", ".\n.\n........ updating miles ........\n.");
-                miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
-                if(miles > 0) {
-                    totalMiles = totalMiles + miles;
-                    Log.v("UpdateMileage", "calc miles: "+miles+" mi");
-                    Log.v("UpdateMileage", "totalMiles1:  "+totalMiles+" mi");
-                }
-            //}
+            totalNaticalMiles = totalNaticalMiles + distFrom(lat1, lon2, lat2, lon2);
+            miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
+            if(miles > 0) {
+                totalMiles = totalMiles + miles;
+                Log.v("UpdateMileage", "1 calc miles: "+miles+" mi");
+            }
         }
+        Log.v("UpdateMileage", "naticalMils:  "+mileageformatter.format(totalNaticalMiles)+" mi");
+        Log.v("UpdateMileage", "totalMiles1:  "+mileageformatter.format(totalMiles)+" mi");
 
-        miles = 0.0;
-        lat1 = 0.0;
-        lon1 = 0.0;
-        lat2 = 0.0;
-        lon2 = 0.0;
         if(index2 > 0) {
+            miles = lat1 = lon1 = lat2 = lon2 = 0.0;
             lat1 = coordinateList2.get(index2-1).latitude;
             lon1 = coordinateList2.get(index2-1).longitude;
             lat2 = coordinateList2.get(index2).latitude;
             lon2 = coordinateList2.get(index2).longitude;
 
-            //if(!(lat1 == lat2 && lon1 == lon2)) {
-            //if coordinate is different from previous, calculate distance
             miles = (distance(lat1, lon1, lat2, lon2, 'M') * 0.00062137) * Math.pow(10, 3);
             if(miles > 0) {
                 totalMiles2 = totalMiles2 + miles;
-                Log.v("UpdateMileage", "calc miles: "+miles+" mi");
-                Log.v("UpdateMileage", "totalMiles2:  "+totalMiles2+" mi");
+                Log.v("UpdateMileage", "2 calc miles: "+miles+" mi");
             }
-            //}
         }
+        Log.v("UpdateMileage", "totalMiles2:  "+mileageformatter.format(totalMiles2)+" mi");
         return miles;
     }//end updateMileage
 
@@ -521,6 +556,7 @@ public class MyActivity extends Activity {
             gps = new GPSManager(this);
             getCoordinates = new getGPSCoordinates();
             getPosition.setEnabled(true);
+            listProviders.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
             clearTracks.setEnabled(true);
@@ -540,6 +576,7 @@ public class MyActivity extends Activity {
             gps = new GPSManager(this);
             getCoordinates = new getGPSCoordinates();
             getPosition.setEnabled(true);
+            listProviders.setEnabled(true);
             startTracks.setEnabled(true);
             stopTracks.setEnabled(true);
             clearTracks.setEnabled(true);
@@ -577,6 +614,7 @@ public class MyActivity extends Activity {
         super.onPause();
         gps.stopUsingGPS();
         getPosition.setEnabled(false);
+        listProviders.setEnabled(false);
         startTracks.setEnabled(false);
         stopTracks.setEnabled(false);
         clearTracks.setEnabled(false);
@@ -588,6 +626,7 @@ public class MyActivity extends Activity {
         super.onStop();
         gps.stopUsingGPS();
         getPosition.setEnabled(false);
+        listProviders.setEnabled(false);
         startTracks.setEnabled(false);
         stopTracks.setEnabled(false);
         clearTracks.setEnabled(false);
@@ -605,6 +644,7 @@ public class MyActivity extends Activity {
                 gpsStatusTextView.setText("location service is enabled");
                 gps = new GPSManager(this);
                 getPosition.setEnabled(true);
+                listProviders.setEnabled(true);
                 startTracks.setEnabled(true);
                 stopTracks.setEnabled(true);
                 clearTracks.setEnabled(true);

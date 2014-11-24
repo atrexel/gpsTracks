@@ -5,15 +5,17 @@ import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
-import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GPSManager extends Service implements LocationListener {
 
@@ -133,6 +135,43 @@ public class GPSManager extends Service implements LocationListener {
     }
 
     /**
+     * returns a string of the best provider based on a criteria
+     * */
+    public String getBestProvider(){
+        if(locationManager != null){
+            Criteria criteria = new Criteria();
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            // criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+            criteria.setAltitudeRequired(false);
+            criteria.setBearingRequired(false);
+            criteria.setCostAllowed(true);
+            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+            return locationManager.getBestProvider(criteria, true);
+        }
+        return null;
+    }
+
+    /**
+     * returns a list of all enabled providers
+     * */
+    public boolean isProviderEnabled(String provider){
+        if(locationManager.isProviderEnabled(provider)){
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * returns a list of all avalible providers
+     * */
+    public List<String> listAllProviders(){
+        if(locationManager != null){
+            return locationManager.getAllProviders();
+        }
+        return null;
+    }
+
+    /**
      * Stop using GPS listener
      * Calling this function will stop using GPS in your app
      * */
@@ -224,7 +263,7 @@ public class GPSManager extends Service implements LocationListener {
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
 
-        Log.v("UpdateMileage",msg);
+        //Log.v("UpdateMileage",msg);
         //Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
 
