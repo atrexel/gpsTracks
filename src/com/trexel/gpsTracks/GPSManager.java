@@ -14,7 +14,6 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class GPSManager extends Service implements LocationListener {
@@ -41,7 +40,7 @@ public class GPSManager extends Service implements LocationListener {
     // Global time constants
 
     // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 5; // 5 meters
 
     // The minimum time between updates in milliseconds
     private static final long MIN_TIME_BW_UPDATES = 1000 * 45; // 45 seconds
@@ -90,13 +89,30 @@ public class GPSManager extends Service implements LocationListener {
             } else {
                 this.canGetLocation = true;
 
+                // First get location from Network Provider
+                if (isNetworkEnabled) {
+                    locationManager.requestLocationUpdates(
+                            LocationManager.NETWORK_PROVIDER,
+                            MIN_TIME_BW_UPDATES,
+                            MIN_DISTANCE_CHANGE_FOR_UPDATES, GPSManager.this);
+                    Log.d("Network", "Network");
+                    if (locationManager != null) {
+                        location = locationManager
+                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                        if (location != null) {
+                            latitude = location.getLatitude();
+                            longitude = location.getLongitude();
+                        }
+                    }
+                }
+
                 // if GPS Enabled get lat/long using GPS Services
                 if (isGPSEnabled) {
                     if (location == null) {
                         locationManager.requestLocationUpdates(
                                 LocationManager.GPS_PROVIDER,
                                 MIN_TIME_BW_UPDATES,
-                                MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+                                MIN_DISTANCE_CHANGE_FOR_UPDATES, GPSManager.this);
                         Log.d("GPS Enabled", "GPS Enabled");
                         if (locationManager != null) {
                             location = locationManager
@@ -108,23 +124,6 @@ public class GPSManager extends Service implements LocationListener {
                         }
                     }
                 }
-
-                // First get location from Network Provider
-                if (isNetworkEnabled) {
-                    locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
-                            MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-                    Log.d("Network", "Network");
-                    if (locationManager != null) {
-                        location = locationManager
-                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                        if (location != null) {
-                            latitude = location.getLatitude();
-                            longitude = location.getLongitude();
-                        }
-                    }
-                }
             }
 
         } catch (Exception e) {
@@ -133,6 +132,22 @@ public class GPSManager extends Service implements LocationListener {
 
         return location;
     }
+
+
+    /**
+     * returns a location for the current criteria
+     * */
+    public Location getLastKnownLocation(){
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        // criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setCostAllowed(true);
+        criteria.setPowerRequirement(Criteria.POWER_HIGH);
+        return locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, true));
+    }
+
 
     /**
      * returns a string of the best provider based on a criteria
@@ -259,11 +274,11 @@ public class GPSManager extends Service implements LocationListener {
         longitude = location.getLongitude();
 
         // Report to the UI that the location was updated
-        String msg = "Updated Location: " +
+        String msg = "onLocationChanged: " +
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
 
-        //Log.v("UpdateMileage",msg);
+        Log.v("UpdateMileage",msg);
         //Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
 

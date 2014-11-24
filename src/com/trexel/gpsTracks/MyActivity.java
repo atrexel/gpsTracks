@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
@@ -44,6 +46,7 @@ public class MyActivity extends Activity {
         double longitude = 0.0;
         String timestamp = "";
         double accuracy = 0.0;
+        String provider = "";
     }
 
     ArrayList<Coordinate> coordinateList = new ArrayList<Coordinate>();
@@ -151,14 +154,29 @@ public class MyActivity extends Activity {
         getPosition.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(gps.isGPSEnabled && gps.isNetworkEnabled){
-                    if(gps.canGetLocation) {
-                        location = gps.getLocation(); //updates latitude and longitude
-                        displayEditText.append("Current Location:\n    "+location.getLatitude()+
-                                "," + location.getLongitude() + "\n\n");
-                    }else{
-                        Toast.makeText(getApplicationContext(), "Can't get location", Toast.LENGTH_SHORT).show();
-                    }
+                if(gps != null){
+                    /*
+                    GPSManager.getLocationManager().requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER, 0, 0, new LocationListener() {
+                            @Override
+                            public void onStatusChanged(String provider, int status, Bundle extras) {
+                            }
+                            @Override
+                            public void onProviderEnabled(String provider) {
+                            }
+                            @Override
+                            public void onProviderDisabled(String provider) {
+                            }
+                            @Override
+                            public void onLocationChanged(final Location location) {
+                            }
+                        });
+                    */
+                    gps.stopUsingGPS();
+                    //location = gps.getLastKnownLocation();
+                    location = gps.getLocation(); //updates latitude and longitude
+                    displayEditText.append("Current Pos: "+location.getLatitude()+
+                            "," + location.getLongitude() + "\n");
                 }else{
                     //need to turn on location
                     gpsStatusTextView.setText("location service is disabled");
@@ -450,6 +468,7 @@ public class MyActivity extends Activity {
         newCoord.longitude = location.getLongitude();
         newCoord.timestamp = dateformatter.format(date);
         newCoord.accuracy = location.getAccuracy();
+        newCoord.provider = location.getProvider();
         //add the Coordinate to the coordinateList
         coordinateList.add(newCoord);
         coordIndex = coordIndex + 1;
@@ -459,7 +478,7 @@ public class MyActivity extends Activity {
         }
         index = coordinateList.indexOf(newCoord);
         Log.v("UpdateMileage", "nextCoord: "+newCoord.latitude+","+
-                newCoord.longitude+" ("+newCoord.accuracy+") ["+newCoord.timestamp+"]");
+                newCoord.longitude+" ("+newCoord.provider/*newCoord.accuracy*/+") ["+newCoord.timestamp+"]");
 
 
         //calculate distance between coordinate points
@@ -543,6 +562,60 @@ public class MyActivity extends Activity {
     /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
     private double rad2deg(double rad) {
         return (rad * 180 / Math.PI);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts a gps coordinate string to decimals    :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double convert2Decimal(String gpsCoord) {
+        //Decimal value = Degrees + (Minutes/60) + (Seconds/3600)
+        double decimal = 0.0;
+
+        //get the direction of the string [N, S, E, W]
+        char direction = '0'; //gpsCoord.substring(gpsCoord.length() - 1));
+        for(int i=gpsCoord.length()-1; i>=0; i--) {
+            if(Character.isUpperCase(gpsCoord.charAt(i))) {
+                direction = gpsCoord.charAt(i);
+                break;
+            }
+        }
+
+        //convert all String number to array of ints
+        //gpsCoord.replaceAll("[^0-9]+", " ").trim().split(" ");
+        //gpsCoord.replaceAll("[^-?0-9]+", " ").trim().split(" ");
+        String gpsString[] = gpsCoord.replaceAll("[^0-9]+", " ").trim().split(" ");
+        int[] gpsInts = new int[gpsString.length];
+        for (int i = 0; i < gpsString.length; i++) {
+            try {
+                gpsInts[i] = Integer.parseInt(gpsString[i]);
+            } catch (NumberFormatException nfe) {};
+        }
+
+        //actually convert the array of ints into one decimal
+        //Decimal value = Degrees + (Minutes/60) + (Seconds/3600)
+        decimal = gpsInts[0] + gpsInts[1]/60 + gpsInts[2]/3600;
+
+        //determine sign from direction
+        if(direction == 'S' || direction == 'W'){
+            //should be negative
+            decimal = decimal * (-1);
+        }
+        return decimal;
+    }
+
+    public double km2Miles(double km){
+        //miles x 1.609 = kilometers
+        return km/1.609;
+    }
+
+    public double meters2Miles(double meters){
+        //miles x 1609.3 = meters
+        return meters/1609.3;
+    }
+
+    public double miles2Meters(double miles){
+        //miles x 1609.3 = meters
+        return miles*1609.3;
     }
 
 
